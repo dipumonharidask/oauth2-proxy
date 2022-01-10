@@ -23,7 +23,7 @@ try {
 
     & sourceanalyzer -b $FortifyBuildId -clean -logfile "$PSScriptRoot\fortify-clean.txt"
 
-    & sourceanalyzer  -Xmx8G -b $FortifyBuildId
+    & sourceanalyzer  -Xmx8G -b $FortifyBuildId "$RepositoryRoot"
     & sourceanalyzer  -b $FortifyBuildId -show-files 
     & sourceanalyzer  -Xmx8G -b $FortifyBuildId  -Dcom.fortify.sca.Phase0HigherOrder.Languages=javascript,typescript -scan -f $FortifyFprPath -logfile "$PSScriptRoot\fortify-scan.txt"
 
