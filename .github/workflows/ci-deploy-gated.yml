@@ -27,7 +27,7 @@ env:
 jobs:
   terragrunt-workflow-core:
     name: Terragrunt - core
-    runs-on: [self-hosted, research]
+    runs-on: ubuntu-20.04
     container: alpine/terragrunt:1.0.1
     outputs:
       core: ${{ steps.tf_output.outputs.core }}
@@ -68,7 +68,7 @@ jobs:
   
   terragrunt-workflow-cloudfoundry:
     name: Terragrunt - cloudfoundry
-    runs-on: [self-hosted, research]
+    runs-on: ubuntu-20.04
     needs: [terragrunt-workflow-core]
     container: alpine/terragrunt:1.0.1
     env:
@@ -102,7 +102,7 @@ jobs:
   
   terragrunt-workflow-api-gateway:
     name: Terragrunt - api-gateway
-    runs-on: [self-hosted, research]
+    runs-on: ubuntu-20.04
     needs: [terragrunt-workflow-cloudfoundry]
     container: alpine/terragrunt:1.0.1
     env:
