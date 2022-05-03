@@ -9,11 +9,9 @@ data "hsdp_config" "idm_url" {
   region      = var.region
   environment = var.environment
 }
-
 data "hsdp_docker_namespace" "edi" {
   name = "edi"
 }
-
 data "hsdp_docker_repository" "edi-foundation-envoy-gateway" {
   namespace_id = data.hsdp_docker_namespace.edi.id
   name         = "edi-foundation-envoy-gateway"

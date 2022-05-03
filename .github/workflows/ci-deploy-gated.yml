@@ -1,4 +1,4 @@
-name: Deploy CD with Multitenancy-Url
+name: Deploy CI
 
 on:   
   workflow_call:    
@@ -36,7 +36,7 @@ jobs:
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
     defaults:
       run:
-        working-directory: ./deploy/CD/core
+        working-directory: ./deploy/ci-gated/core
     strategy:      
       fail-fast: false
     steps:
@@ -51,20 +51,20 @@ jobs:
     - id: plan
       uses: ./../.actions/terragrunt-plan-action
       with:
-        working-directory: ./deploy/CD/core
+        working-directory: ./deploy/ci-gated/core
         key: client-test-core-plan
 
     - id: apply
       uses: ./../.actions/terragrunt-apply-action
       with:
-        working-directory: ./deploy/CD/core
+        working-directory: ./deploy/ci-gated/core
         key: client-test-core-plan 
 
     - id: output
       uses: ./.github/workflows/terragrunt-output-action
       with: 
-        working-directory: ./deploy/CD/core
-        key: client-test-core-output 
+        working-directory: ./deploy/ci-gated/core
+        key: client-test-core-output
   
   terragrunt-workflow-cloudfoundry:
     name: Terragrunt - cloudfoundry
@@ -76,7 +76,7 @@ jobs:
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
     defaults:
       run:
-        working-directory: ./deploy/CD/cloudfoundry
+        working-directory: ./deploy/ci-gated/cloudfoundry
     strategy:      
       fail-fast: false
     steps:
@@ -91,13 +91,13 @@ jobs:
     - id: plan
       uses: ./../.actions/terragrunt-plan-action
       with:
-        working-directory: ./deploy/CD/cloudfoundry
+        working-directory: ./deploy/ci-gated/cloudfoundry
         key: client-test-cloudfoundry-plan
 
     - id: apply
       uses: ./../.actions/terragrunt-apply-action
       with:
-        working-directory: ./deploy/CD/cloudfoundry
+        working-directory: ./deploy/ci-gated/cloudfoundry
         key: client-test-cloudfoundry-plan
   
   terragrunt-workflow-api-gateway:
@@ -108,11 +108,11 @@ jobs:
     env:
       ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      CONFIG: ./envoyconfig_with_multitenancy.yml
+      CONFIG: ./envoyconfig_without_multitenancy.yml
       SOURCE: url
     defaults:
       run:
-        working-directory: ./deploy/CD/api-gateway
+        working-directory: ./deploy/ci-gated/api-gateway
     strategy:      
       fail-fast: false
     steps:
@@ -127,17 +127,17 @@ jobs:
     - id: plan
       uses: ./../.actions/terragrunt-plan-action
       with:
-        working-directory: ./deploy/CD/api-gateway
+        working-directory: ./deploy/ci-gated/api-gateway
         key: client-test-api-gateway-plan
 
     - id: apply
       uses: ./../.actions/terragrunt-apply-action
       with:
-        working-directory: ./deploy/CD/api-gateway
+        working-directory: ./deploy/ci-gated/api-gateway
         key: client-test-api-gateway-plan 
     
     - id: output
       uses: ./.github/workflows/terragrunt-output-action
       with: 
-        working-directory: ./deploy/CD/api-gateway
+        working-directory: ./deploy/ci-gated/api-gateway
         key: client-test-api-gateway-output

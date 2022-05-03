@@ -3,7 +3,7 @@ include {
 }
 
 terraform {
-  source = "../../dependent_modules//core"
+  source = "../../dependent_modules//core-gated"
 }
 
 inputs = {

@@ -15,7 +15,7 @@ remote_state {
   }
   config = {
     storage_account_name = "foundationcicd"
-    container_name       = "envoyci"
+    container_name       = "oauthci-gated"
     key                  = "${path_relative_to_include()}/terraform.tfstate"
     resource_group_name  = "edi-platform-foundation-cicd"
     subscription_id      = "${local.azure_subscription_id}"

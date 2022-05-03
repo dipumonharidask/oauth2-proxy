@@ -8,7 +8,7 @@ terraform {
 
 inputs = {
   cf_org          = "client-EDI-SolutionAccelerator"
-  cf_space_name   = "envoyci"
+  cf_space_name   = "oauthci-gated"
   logdrainer_uri  = "${dependency.core.outputs.logdrainer_base_uri}${dependency.core.outputs.logdrainer_uri}"
   redis_plan_name = "redis-development-standalone"
   cf_deploy_user  = dependency.core.outputs.cf_deploy_user
