@@ -10,7 +10,7 @@ inputs = {
 
   proposition_id       = dependency.core.outputs.foundation_envoy_proposition_id
   cf_org               = "client-EDI-SolutionAccelerator"
-  cf_space             = "envoyci"
+  cf_space             = "oauthci"
   cf_deploy_user       = dependency.core.outputs.cf_deploy_user
   cf_deploy_password   = dependency.core.outputs.cf_deploy_password
   cf_domain            = "us-east.philips-healthsuite.com"
