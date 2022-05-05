@@ -75,7 +75,27 @@ jobs:
       run: |
         ./.github/workflows/test.sh
 
-  docker:
+  Blackduck:
+    needs: [Init]
+    runs-on: builder_blr
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: blackduck scan
+        run: powershell -ExecutionPolicy RemoteSigned -NoExit -File ${{ github.workspace }}\Build\PS\Invoke-BlackduckDetect.ps1 -SourcePath ${{ github.workspace }}
+
+  Fortify:
+    needs: [Init]
+    runs-on: builder_blr
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        
+      - name: Fortify scan
+        run: powershell -ExecutionPolicy RemoteSigned -NoExit -File ${{ github.workspace }}\build\ps\Invoke-FortifyScan.ps1
+
+  Build:
     needs: [Init]
     runs-on: ubuntu-20.04
     steps:
@@ -128,3 +148,49 @@ jobs:
       run: |
         docker tag ${{ env.BRANCH_IMAGE }} ${{ env.CI_IMAGE }}
         docker push ${{ env.CI_IMAGE }}
+
+  Deploy_And_GW_Integrated_Test:
+    needs: [Build]
+    if: github.ref == 'refs/heads/refator-pipeline'
+    uses: ./.github/workflows/api-gw-integrated-test.yaml
+    secrets:
+      VAULT_HOST: ${{ secrets.VAULT_HOST }}
+      VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+
+  Release:
+    if: github.ref == 'refs/heads/refator-pipeline'
+    needs: Deploy_And_GW_Integrated_Test
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2.3.1
+        with:
+          url: ${{ secrets.VAULT_HOST }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: true
+          secrets: |
+            devops/data/docker-repos/hsdp-edi endPoint | HSDP_DOCKER_REGISTRY ;
+            devops/data/docker-repos/hsdp-edi user | HSDP_DOCKER_USER ;
+            devops/data/docker-repos/hsdp-edi password | HSDP_DOCKER_PASSWORD ;
+            
+      - name: Set env variables
+        run: |
+          new_version=`cat VERSION`
+          echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
+          echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
+          echo "RC_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
+        
+      - name: Login to Docker Repo
+        run: docker login ${{ env.HSDP_DOCKER_REGISTRY }} --username ${{ env.HSDP_DOCKER_USER }} --password ${{ env.HSDP_DOCKER_PASSWORD }}
+      
+      - name: Docker Push
+        run: |
+          docker pull ${{ env.CI_IMAGE }}
+          docker tag ${{ env.CI_IMAGE }} ${{ env.RC_IMAGE }}
+          docker push ${{ env.RC_IMAGE }}
