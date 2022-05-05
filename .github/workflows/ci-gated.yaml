@@ -1,20 +1,14 @@
 name: CI-GATED
 
 on:
-  pull_request:
-    branches: [ master ]
+  push:
+    branches: [ refator-pipeline ]
   workflow_dispatch:
 
 jobs:
   Init:
     name: Initialize
-    runs-on: [self-hosted, research]
-    container:
-      image: docker.na1.hsdp.io/edi/build-env:master-45
-      credentials:
-        username: ${{ secrets.HSDP_DOCKER_USER }}
-        password: ${{ secrets.HSDP_DOCKER_PASSWORD }}
-
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
