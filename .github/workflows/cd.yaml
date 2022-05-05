@@ -1,98 +1,175 @@
-name: CI-CD
+name: CD
 
 on:
-  push:
-    branches:
-      - 'edi-foundation-integration'
-      # - $default-branch
+  workflow_dispatch:
 
 jobs:
-  build:
-    env:
-      COVER: true
+  Init:
+    name: Initialize
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@v2
 
-    - name: Check out code
-      uses: actions/checkout@v2
-
-    - name: Set up Go 1.16
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.16.x
-      id: go
-
-    - name: Get dependencies
-      run: |
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.36.0
-        curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-        chmod +x ./cc-test-reporter
-
-    - name: Verify Code Generation
-      run: |
-        make verify-generate
-
-    - name: Lint
-      run: |
-        make lint
-
-    - name: Build
-      run: |
-        make build
-
-    - name: Test
-      env:
-        CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
-      run: |
-        ./.github/workflows/test.sh
-
-  docker:
-    runs-on: ubuntu-20.04
+      - name: Extract branch name
+        uses: vazco/github-actions-branch-name@v1
+        id: branch
+  
+  Build-Automation-Solution:
+    needs: [Init]        
+    runs-on: builder_blr
+    name: Build Automation Solution
     steps:
+      - name: cleanup
+        run: Remove-Item ${{ github.workspace }}\* -Recurse
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT_TOKEN }}
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+        with:
+          vs-version: '[16.4,17.0)'          
+      - name: Add dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+         dotnet-version: '3.1.x'
+      - name: msbuild execute
+        run: msbuild ${{ github.workspace }}\Build\api_automation_build.proj /t:build /p:configuration=release,platform=anycpu /nowarn:MSB4011,MSB4210
+      - name: push nuget to artifactory
+        run: dotnet nuget push  ${{ github.workspace }}\AutomationTest\**\*.nupkg -s JFrogrepository --skip-duplicate
 
-    - name: Check out code
-      uses: actions/checkout@v2
 
-    - name: Docker Build
-      run: |
-        make docker
-        
-    - name: Docker login
-      run: |
-          docker login --username '${{ secrets.DOCKER_USER }}' --password '${{ secrets.DOCKER_PSWD }}'  '${{ secrets.DOCKER_REPO }}' 
-        
-    - name: Docker tag & Push
-      run: |
-          docker tag  '${{ secrets.DOCKER_REPO }}'/oauth2-proxy:latest '${{ secrets.DOCKER_REPO }}'/edi-foundation-oauth2-proxy:${{ github.sha }}
-          docker tag  '${{ secrets.DOCKER_REPO }}'/oauth2-proxy:latest '${{ secrets.DOCKER_REPO }}'/edi-foundation-oauth2-proxy:latest
-          docker push '${{ secrets.DOCKER_REPO }}'/edi-foundation-oauth2-proxy:${{ github.sha }}
-          docker push '${{ secrets.DOCKER_REPO }}'/edi-foundation-oauth2-proxy:latest
+  DeployCIGated:
+    needs: [Init, Build-Automation-Solution]
+    uses: ./.github/workflows/ci-deploy-gated.yml        
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}        
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}                                
+      HSDP_DOCKER_USER: ${{ secrets.HSDP_DOCKER_USER }}        
+      HSDP_DOCKER_PASSWORD: ${{ secrets.HSDP_DOCKER_PASSWORD }}        
+      CODESCENE_CI_CD_GITHUB_TOKEN: ${{ secrets.CODESCENE_CI_CD_GITHUB_TOKEN }} 
+      INNER_SOURCE_ACTIONS_APP_ID: ${{ secrets.INNER_SOURCE_ACTIONS_APP_ID }} 
+      INNER_SOURCE_ACTIONS_APP_PRIVATE_KEY_BASE64: ${{ secrets.INNER_SOURCE_ACTIONS_APP_PRIVATE_KEY_BASE64 }}
+      GH_PAT_TOKEN: ${{secrets.GH_PAT_TOKEN}}
+  
+  CI-Automation-Variables:
+    needs: [DeployCIGated]
+    runs-on: ubuntu-20.04  
+    outputs:
+      oauth_client_secret: ${{ steps.core-output.outputs.oauth_client_secret }}       
+      ci_service_private_key: ${{ steps.core-output.outputs.ci_service_private_key }} 
+      envoy_base_url: "https://${{ steps.gateway-output.outputs.gateway_url }}"
+      deploy_user: ${{ steps.core-output.outputs.deploy_user }}
+      deploy_password: ${{ steps.core-output.outputs.deploy_password }}
+      ci_service_id: ${{ steps.core-output.outputs.ci_service_id }}
+      oauth_client_id: ${{ steps.core-output.outputs.oauth_client_id }}
+    steps:
+      - name: Download Core output
+        uses: actions/download-artifact@v2
+        with:
+          name: client-test-core-output
+          path: ${{ github.workspace}}/output/core
+      - name: Download Gateway output
+        uses: actions/download-artifact@v2
+        with:
+          name: client-test-api-gateway-output
+          path: ${{ github.workspace}}/output/gateway
+      - name: Get Outputs from Core module
+        working-directory: ${{ github.workspace}}/output/core
+        id: core-output
+        shell: bash
+        run: |
+          apt update && apt install jq -y
+          core_output=$(cat output.json)
 
-  # Trigger-Workflow:
-  #     if: github.ref == 'refs/heads/master'
-  #     needs: [build, docker]
-  #     runs-on: ubuntu-latest
-  #     steps:
-  #       - uses: convictional/trigger-workflow-and-wait@v1.6.1
-  #         with:
-  #           owner: philips-internal
-  #           repo: hds-auth-gateway
-  #           github_token: ${{ secrets.ACCESS_TOKEN }}
-  #           workflow_file_name: cd.yaml
-  #           ref: master
+          oauth_client_secret=$(echo $core_output | jq -r '.fdn_envoy_oauth_client_password.value')
+          ci_service_private_key=$(echo $core_output | jq -r '.foundation_envoy_nightly_service_private_key.value')
+          deploy_user=$(echo $core_output | jq -r '.cf_deploy_user.value')
+          deploy_password=$(echo $core_output | jq -r '.cf_deploy_password.value')
+          ci_service_id=$(echo $core_output | jq -r '.foundation_envoy_nightly_service_id.value')
+          oauth_client_id=$(echo $core_output | jq -r '.fdn_envoy_oauth_client_id.value')
 
-  # Release-Candidate:
-  #      if: github.ref == 'refs/heads/main'
-  #      needs: [Trigger-Workflow]
-  #      runs-on: ubuntu-20.04 
-  #      steps:
-  #        - uses: actions/checkout@v2
+          echo "::set-output name=oauth_client_secret::$oauth_client_secret"        
+          echo "::set-output name=ci_service_private_key::$ci_service_private_key"
+          echo "::set-output name=oauth_client_id::$oauth_client_id"
+          echo "::set-output name=deploy_user::$deploy_user"
+          echo "::set-output name=deploy_password::$deploy_password"
+          echo "::set-output name=ci_service_id::$ci_service_id"
 
-  #        - name: Login to Docker Repo
-  #          run: docker login --username '${{ secrets.DOCKER_USER }}' --password '${{ secrets.DOCKER_PSWD }}'  '${{ env.HSDP_DOCKER_HOST }}'
-    
-  #        - name: Docker Pull, Tag and Push rc
-  #          run: |
-  #            docker push '${{ secrets.DOCKER_REPO }}'/edi-foundation-oauth2-proxy:latest
-  #            docker push '${{ secrets.DOCKER_REPO }}'/edi-foundation-oauth2-proxy:latest ${{ env.HSDP_DOCKER_HOST }}/edisp-releases/edi-foundation-oauth2-proxy:${{ github.sha }}-rc
-  #            docker push ${{ env.HSDP_DOCKER_HOST }}/edisp-releases/edi-foundation-oauth2-proxy:${{ github.sha }}-rc
+      - name: Get Outputs from Api Gateway
+        working-directory: ${{ github.workspace}}/output/gateway
+        id: gateway-output
+        shell: bash
+        run: |
+          apt update && apt install jq -y
+          output=$(cat output.json)
+          
+          gateway_url=$(echo $output | jq -r '.api_gateway_url.value')
+          echo $gateway_url
+          
+          echo "::set-output name=gateway_url::$gateway_url"
+
+  # TestCI-Gated:
+  #   if: github.ref == 'refs/heads/workflow-trigger'
+  #   needs: [Build-Automation-Solution, CI-Automation-Variables]
+  #   runs-on: builder_blr
+  #   steps: 
+  #     - uses: actions/checkout@v2
+  #       with:
+  #        token: ${{ secrets.GH_TOKEN_CI }}  
+
+  #     - name: Add dotnet
+  #       uses: actions/setup-dotnet@v1
+  #       with:
+  #         dotnet-version: '3.1.x'                        
+
+  #     - name: Restore Automation Test Project
+  #       working-directory: ${{ github.workspace }}       
+  #       run: |  
+  #         dotnet restore ${{ github.workspace }}\AutomationTest\automation.packages.proj --packages ./automation-dll
+
+  #     - uses: microsoft/variable-substitution@v1         
+  #       name: Update Env Json
+  #       with:          
+  #         files: ${{ github.workspace }}/automation-dll/philips.edi.foundation.apigateway.automationtest/1.0.3/lib/net3.1/Env.json
+  #       env:
+  #         PipelineConfiguration.AuthUserName: "sai.chand@philips.com"
+  #         PipelineConfiguration.AuthPassword: ${{ secrets.IAM_TEST_USER_PASSWORD }}
+  #         PipelineConfiguration.APIGatewayBaseUrl: "https://envoyci-gated-api-gateway.us-east.philips-healthsuite.com"
+  #         PipelineConfiguration.ServiceID: ${{ needs.CI-Automation-Variables.outputs.ci_service_id }}
+  #         PipelineConfiguration.ServiceIDPrivateKey: ${{ needs.CI-Automation-Variables.outputs.ci_service_private_key }}
+  #         PipelineConfiguration.OauthClientID: ${{ needs.CI-Automation-Variables.outputs.oauth_client_id }}
+  #         PipelineConfiguration.OauthClientSecret: ${{ needs.CI-Automation-Variables.outputs.oauth_client_secret }}
+  #         PipelineConfiguration.CFOrgName: "client-EDI-SolutionAccelerator"
+  #         PipelineConfiguration.CFSpaceName: "envoyci-gated"
+  #         PipelineConfiguration.CFUserName: ${{ secrets.CF_USERNAME }}
+  #         PipelineConfiguration.CFPassword: ${{ secrets.CF_PASSWD }}
+  #         PipelineConfiguration.CookieName: "edi_session_envoyci-gated"
+  #         PipelineConfiguration.CFOauthTokenUrl: "https://login.cloud.pcftest.com/oauth/token"
+  #         PipelineConfiguration.CFBaseUrl: "https://api.cloud.pcftest.com/v3"
+  #         PipelineConfiguration.CFAuthenticatorAppName: "authenticator_service"
+  #         PipelineConfiguration.OauthProxyCookieTimeoutInSeconds: "25"
+  #         PipelineConfiguration.AuthenticatorSessionExpireOffsetInPercent: "99"
+  #         PipelineConfiguration.AccessTokenTestRoleName: "ENVOY-NIGHTLY-SERVICE-TF-GATED"
+  #         PipelineConfiguration.OpenIdConfigurationBaseUrl: "https://foundation-client-test.us-east.philips-healthsuite.com"
+  #         PipelineConfiguration.OrgSymmetricKey: ${{ secrets.ORG_SYMMETRIC_KEY }}
+  #         PipelineConfiguration.OpenIdConfigOrganizationCertificateMapping: '[{"organizationId":"ed186a39-8b5f-4351-bebc-4e17779c293b","certificate":"-----BEGIN CERTIFICATE-----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-----END CERTIFICATE-----"},{"organizationId":"51e2503f-c1df-430d-a1ce-2524fa796cda","certificate":"-----BEGIN CERTIFICATE-----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-----END CERTIFICATE-----"}]'
+  #         PipelineConfiguration.SSOTokenUserName: "user"
+  #         PipelineConfiguration.TenantDetails: '{"ValidTenant": {"tenantName": "org1-envoyci-gated-api-gateway", "iamOrganizationId": "51e2503f-c1df-430d-a1ce-2524fa796cda"}, "InvalidTenant":{"tenantName": "invalidorg-envoyci-gated-api-gateway","iamOrganizationId": "1234"},"AccessTokenTenant":{"tenantName": "accesstokentestorg","iamOrganizationId": "9ccf3768-53b9-412c-ae22-dcd5aa38242e"}}'
+  #         PipelineConfiguration.IAMAuthorizationUrl: "https://iam-client-test.us-east.philips-healthsuite.com/authorize/oauth2/token"
+  #         PipelineConfiguration.IAMAccessTokenUrl: "https://iam-client-test.us-east.philips-healthsuite.com/oauth2/access_token"
+  #         PipelineConfiguration.IDMClientBaseUrl: "https://idm-client-test.us-east.philips-healthsuite.com/authorize/identity"
+  #         PipelineConfiguration.IAMGetUserUrl: "https://idm-client-test.us-east.philips-healthsuite.com/authorize/identity/User?profileType=membership&userId="
+  #         PipelineConfiguration.CDRBaseUrl: "https://cdr-edisa-test.us-east.philips-healthsuite.com"
+
+  #     - name: Run Tests
+  #       continue-on-error: true
+  #       working-directory: ${{ github.workspace }}/automation-dll/philips.edi.foundation.apigateway.automationtest
+  #       run: |          
+  #         dotnet test **/net3.1/*Test.dll --no-restore --filter TestCategory=PostDeployment --results-directory ${{ github.workspace }}/automation-dll/philips.edi.foundation.apigateway.automationtest/TestResults --logger trx
+  #         dotnet test **/net3.1/*Test.dll --no-restore --filter TestCategory=GatedSanity --results-directory ${{ github.workspace }}/automation-dll/philips.edi.foundation.apigateway.automationtest/TestResults --logger trx
+          
+  #     - name: email-notification
+  #       continue-on-error: true
+  #       working-directory: ${{ github.workspace }}/Build/PS
+  #       run: |
+  #         powershell -ExecutionPolicy RemoteSigned -NoExit -File email-notification.ps1 -BuildNumber ${{ github.run_id }} -ReportFolder ${{ github.workspace }}/automation-dll/philips.edi.foundation.apigateway.automationtest/TestResults -Subject Api-Gateway-WithoutMultitenancy-Gated
