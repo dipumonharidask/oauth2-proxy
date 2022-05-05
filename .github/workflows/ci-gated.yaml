@@ -39,6 +39,7 @@ jobs:
       - name: push nuget to artifactory
         run: dotnet nuget push  ${{ github.workspace }}\AutomationTest\**\*.nupkg -s JFrogrepository --skip-duplicate
 
+
   DeployCIGated:
     needs: [Init, Build-Automation-Solution]
     uses: ./.github/workflows/ci-deploy-gated.yml        
