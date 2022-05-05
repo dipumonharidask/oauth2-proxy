@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<Project  Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    
+	<PropertyGroup>
+	<TargetFramework>netcoreapp3.1</TargetFramework>	
+	<SrcDir Condition=" '$(SrcDir)' == '' ">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\AutomationTest\'))</SrcDir>	
+	</PropertyGroup>	
+	<Import Project="$(ToolsDir)Common.Properties.proj"  />
+	<ItemGroup>
+		<Testproj Include="$(SrcDir)**/*.UnitTest.csproj" />
+		<TestFolders Include="@(Testproj->'%(RootDir)%(Directory)')" />
+	</ItemGroup>	
+	<Target Name="build">
+	    <CallTarget Targets="IncremnetAssembly"/>			  
+		<!--<Exec Command="dotnet D:\SonarQube\sonar-scanner-msbuild-4.7.1.2311-netcoreapp2.0\SonarScanner.MSBuild.dll begin /k:Api-Gateway-Automation " />-->
+    <Exec Command="dotnet build $(SrcDir)Philips.EDI.Foundation.APIGateway.AutomationTest.sln" WorkingDirectory="$(SrcDir)" />
+		<!--<Exec Command="dotnet D:\SonarQube\sonar-scanner-msbuild-4.7.1.2311-netcoreapp2.0\SonarScanner.MSBuild.dll end" />-->
+	</Target>	
+
+</Project>
