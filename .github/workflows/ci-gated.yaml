@@ -2,7 +2,7 @@ name: CI-GATED
 
 on:
   push:
-    branches: [ refator-pipeline ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
