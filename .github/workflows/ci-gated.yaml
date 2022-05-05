@@ -40,7 +40,6 @@ jobs:
         run: dotnet nuget push  ${{ github.workspace }}\AutomationTest\**\*.nupkg -s JFrogrepository --skip-duplicate
 
   DeployCIGated:
-    if: github.ref == 'refs/heads/workflow-trigger'
     needs: [Init, Build-Automation-Solution]
     uses: ./.github/workflows/ci-deploy-gated.yml        
     secrets:
@@ -54,14 +53,8 @@ jobs:
       GH_PAT_TOKEN: ${{secrets.GH_PAT_TOKEN}}
   
   CI-Automation-Variables:
-    if: github.ref == 'refs/heads/workflow-trigger'
     needs: [DeployCIGated]
-    runs-on: [self-hosted, research]
-    container:
-      image: docker.na1.hsdp.io/edi/build-env:master-45
-      credentials:
-        username: ${{ secrets.HSDP_DOCKER_USER }}
-        password: ${{ secrets.HSDP_DOCKER_PASSWORD }}  
+    runs-on: ubuntu-20.04  
     outputs:
       oauth_client_secret: ${{ steps.core-output.outputs.oauth_client_secret }}       
       ci_service_private_key: ${{ steps.core-output.outputs.ci_service_private_key }} 
