@@ -150,7 +150,7 @@ jobs:
         docker push ${{ env.CI_IMAGE }}
 
   Deploy_And_GW_Integrated_Test:
-    needs: [Build]
+    needs: [Build, Blackduck, Fortify, unit-test]
     if: github.ref == 'refs/heads/refator-pipeline'
     uses: ./.github/workflows/api-gw-integrated-test.yaml
     secrets:
