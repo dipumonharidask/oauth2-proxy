@@ -7,6 +7,28 @@ on:
       # - $default-branch
 
 jobs:
+  Init:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+         token: ${{ secrets.ADMIN_TOKEN }}
+
+      - name: Extract branch name
+        uses: vazco/github-actions-branch-name@v1
+        id: branch
+
+      - name: Bump version
+        run: |
+          bumpversion patch
+          new_version=`cat VERSION`
+          echo "New version is: $new_version"
+
+          git config --global user.name "CI Build"
+          git config --global user.email "ci.build@philips.com"
+          git commit -am "Bump version $new_version"
+          git push --force
+
   unit-test:
     env:
       COVER: true
