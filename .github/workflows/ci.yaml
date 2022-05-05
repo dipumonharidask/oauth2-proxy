@@ -24,8 +24,8 @@ jobs:
 
       - name: Bump version
         run: |
-          apt update
-          apt install bumpversion
+          sudo apt update
+          sudo apt install bumpversion
           bumpversion patch
           new_version=`cat VERSION`
           echo "New version is: $new_version"
