@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - 'refator-pipeline'
+      - 'edi-foundation-integration'
       # - $default-branch
     paths-ignore:
     - 'VERSION'
@@ -151,7 +151,7 @@ jobs:
 
   Deploy_And_GW_Integrated_Test:
     needs: [Build, Blackduck, Fortify, unit-test]
-    if: github.ref == 'refs/heads/refator-pipeline'
+    if: github.ref == 'refs/heads/edi-foundation-integration'
     uses: ./.github/workflows/api-gw-integrated-test.yaml
     secrets:
       VAULT_HOST: ${{ secrets.VAULT_HOST }}
@@ -159,7 +159,7 @@ jobs:
       VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
 
   Release:
-    if: github.ref == 'refs/heads/refator-pipeline'
+    if: github.ref == 'refs/heads/edi-foundation-integration'
     needs: Deploy_And_GW_Integrated_Test
     runs-on: ubuntu-20.04
     steps:
