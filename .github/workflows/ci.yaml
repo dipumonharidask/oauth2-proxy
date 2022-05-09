@@ -25,6 +25,7 @@ jobs:
         id: branch
 
       - name: Bump version
+        if: github.ref == 'refs/heads/edi-foundation-integration'
         run: |
           sudo apt update
           sudo apt install bumpversion
