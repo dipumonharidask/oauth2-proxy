@@ -128,10 +128,10 @@ jobs:
         new_version=`cat VERSION`
         echo "New version is: $new_version"
         echo "VERSION=$new_version" >> "$GITHUB_ENV"
-        echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
-        echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
-        echo "BRANCH_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:${{ steps.branch.outputs.branch_name }}-${new_version}" >> "$GITHUB_ENV"
-        echo "RC_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
+        echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
+        echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
+        echo "BRANCH_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${{ steps.branch.outputs.branch_name }}-${new_version}" >> "$GITHUB_ENV"
+        echo "RC_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
 
     - name: Docker Build
       run: |
@@ -185,9 +185,9 @@ jobs:
       - name: Set env variables
         run: |
           new_version=`cat VERSION`
-          echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
-          echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
-          echo "RC_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
+          echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
+          echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
+          echo "RC_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
         
       - name: Login to Docker Repo
         run: docker login ${{ env.HSDP_DOCKER_REGISTRY }} --username ${{ env.HSDP_DOCKER_USER }} --password ${{ env.HSDP_DOCKER_PASSWORD }}
