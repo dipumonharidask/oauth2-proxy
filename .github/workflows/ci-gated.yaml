@@ -34,3 +34,4 @@ jobs:
           repo: hds-auth-gateway
           github_token: ${{ env.GITHUB_TOKEN }}
           workflow_file_name: ci.yaml
+          ref: master
