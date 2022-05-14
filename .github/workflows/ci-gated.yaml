@@ -1,17 +1,19 @@
-name: API-GW-INTEGRATED-TEST
+name: CI-GATED
 
 on:
-  workflow_call:
-    secrets:
-      VAULT_HOST:
-        required: true
-      VAULT_ROLE_ID:
-        required: true
-      VAULT_SECRET_ID:
-        required: true
+  pull_request:
+    branches: [ edi-foundation-integration ]
+  workflow_dispatch:
 
 jobs:
-  Deploy:
+  Wokflow-Queue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ahmadnassri/action-workflow-queue@v1
+      
+  Gated:
+    needs: [Wokflow-Queue]
     runs-on: ubuntu-20.04
     steps:
       - name: Import Secrets
@@ -31,5 +33,5 @@ jobs:
           owner: philips-internal
           repo: hds-auth-gateway
           github_token: ${{ env.GITHUB_TOKEN }}
-          workflow_file_name: cd.yaml
+          workflow_file_name: ci.yaml
           ref: master
