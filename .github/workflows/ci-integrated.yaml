@@ -108,6 +108,9 @@ jobs:
   Build:
     needs: [Init]
     runs-on: ubuntu-20.04
+    outputs:
+      envoyAlphaTag: ${{ steps.setVariables.outputs.alphaTag }}
+      ciImage: ${{ steps.setVariables.outputs.ciImage }}
     steps:
     - uses: actions/checkout@v2
 
@@ -133,12 +136,13 @@ jobs:
     - name: Set env variables
       run: |
         new_version=`cat VERSION`
+        alpha_tag="${new_version}-alpha"
         echo "New version is: $new_version"
         echo "VERSION=$new_version" >> "$GITHUB_ENV"
-        echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
+        echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-${alpha_tag}" >> "$GITHUB_ENV"
+        echo "::set-output name=ciImage::${{ env.CI_IMAGE }}"
         echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
-        echo "BRANCH_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${{ steps.branch.outputs.branch_name }}-${new_version}" >> "$GITHUB_ENV"
-        echo "RC_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
+        echo "::set-output name=alphaTag::${alpha_tag}"
 
     - name: Docker Build
       run: |
@@ -150,28 +154,27 @@ jobs:
         
     - name: Docker tag 
       run: |
-          docker tag  '${{ secrets.DOCKER_REPO }}'/oauth2-proxy:latest ${{ env.BRANCH_IMAGE }}
-          docker push ${{ env.BRANCH_IMAGE }}
+          docker tag '${{ secrets.DOCKER_REPO }}'/oauth2-proxy:latest ${{ env.CI_IMAGE }}
+          docker tag ${{ env.CI_IMAGE }} ${{ env.CI_LATEST_IMAGE }}
+          docker push ${{ env.CI_LATEST_IMAGE }}
+          docker push ${{ env.CI_IMAGE }}
 
-    - name: Docker Push
-      if: github.ref == 'refs/heads/edi-foundation-integration'
-      run: |
-        docker tag ${{ env.BRANCH_IMAGE }} ${{ env.CI_IMAGE }}
-        docker push ${{ env.CI_IMAGE }}
-
-  Deploy_And_GW_Integrated_Test:
+  Deploy_Test_HDS_AUTH_GATEWAY:
     needs: [Build, Blackduck, Fortify, unit-test]
-    if: github.ref == 'refs/heads/edi-foundation-integration'
-    uses: ./.github/workflows/api-gw-integrated-test.yaml
+    uses: ./.github/workflows/deploy-hds-auth-gateway.yaml
+    with:
+      OAUTH2_PROXY_IMAGE: ${{ needs.Build.outputs.envoyAlphaTag }}
     secrets:
       VAULT_HOST: ${{ secrets.VAULT_HOST }}
       VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
       VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
 
-  Release:
-    if: github.ref == 'refs/heads/edi-foundation-integration'
-    needs: Deploy_And_GW_Integrated_Test
+  Promote_Version:
+    needs: [Deploy_Test_HDS_AUTH_GATEWAY]
+    if: github.ref == 'refs/heads/release-version'
     runs-on: ubuntu-20.04
+    outputs:
+      versionTag: ${{ steps.setVariables.outputs.versionTag }}
     steps:
       - uses: actions/checkout@v2
 
@@ -190,17 +193,32 @@ jobs:
             devops/data/docker-repos/hsdp-edi password | HSDP_DOCKER_PASSWORD ;
             
       - name: Set env variables
+        id: setVariables
         run: |
           new_version=`cat VERSION`
+          echo "New version is: $new_version"
           echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
-          echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
-          echo "RC_IMAGE=docker.na1.hsdp.io/edisp-releases/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
+          echo "VERSION_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}" >> "$GITHUB_ENV"
+          echo "VERSION_TAG=${new_version}" >> "$GITHUB_ENV"
+          echo "::set-output name=versionTag::${{ env.VERSION_TAG }}"
         
-      - name: Login to Docker Repo
-        run: docker login ${{ env.HSDP_DOCKER_REGISTRY }} --username ${{ env.HSDP_DOCKER_USER }} --password ${{ env.HSDP_DOCKER_PASSWORD }}
+      - name: Docker login
+        run: |
+          docker login --username '${{ secrets.DOCKER_USER }}' --password '${{ secrets.DOCKER_PSWD }}'  '${{ secrets.DOCKER_REPO }}'
       
       - name: Docker Push
         run: |
           docker pull ${{ env.CI_IMAGE }}
-          docker tag ${{ env.CI_IMAGE }} ${{ env.RC_IMAGE }}
-          docker push ${{ env.RC_IMAGE }}
+          docker tag ${{ env.CI_IMAGE }} ${{ env.VERSION_IMAGE }}
+          docker push ${{ env.VERSION_IMAGE }}
+
+  Replace_OAuth2_Proxy_Tag_in_Terraform_API_Gateway:
+    needs: [Promote_Version]
+    if: github.ref == 'refs/heads/release-version'
+    uses: ./.github/workflows/update-oauth2-proxy-version-at-api-gw.yaml
+    with:
+      TOKEN_AUTHENTICATOR_IMAGE: ${{ needs.Promote_Version.outputs.versionTag }}
+    secrets:
+      VAULT_HOST: ${{ secrets.VAULT_HOST }}
+      VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
