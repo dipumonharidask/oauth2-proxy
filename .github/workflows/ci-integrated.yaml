@@ -217,7 +217,7 @@ jobs:
     if: github.ref == 'refs/heads/release-version'
     uses: ./.github/workflows/update-oauth2-proxy-version-at-api-gw.yaml
     with:
-      TOKEN_AUTHENTICATOR_IMAGE: ${{ needs.Promote_Version.outputs.versionTag }}
+      OAUTH2_PROXY_IMAGE: ${{ needs.Promote_Version.outputs.versionTag }}
     secrets:
       VAULT_HOST: ${{ secrets.VAULT_HOST }}
       VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
