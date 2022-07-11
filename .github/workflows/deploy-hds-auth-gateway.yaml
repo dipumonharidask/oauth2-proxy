@@ -37,4 +37,4 @@ jobs:
           github_token: ${{ env.GITHUB_TOKEN }}
           client_payload: '{"oauth2proxytag": "${{ inputs.OAUTH2_PROXY_IMAGE }}"}'
           workflow_file_name: ci.yaml
-          ref: release-version
+          ref: master
