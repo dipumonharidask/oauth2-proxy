@@ -198,9 +198,9 @@ jobs:
           new_version=`cat VERSION`
           echo "New version is: $new_version"
           echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-alpha" >> "$GITHUB_ENV"
-          echo "VERSION_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}" >> "$GITHUB_ENV"
-          echo "VERSION_TAG=${new_version}" >> "$GITHUB_ENV"
-          echo "::set-output name=versionTag::${{ env.VERSION_TAG }}"
+          echo "RC_IMAGE=docker.na1.hsdp.io/edisp-releases/edi-foundation-oauth2-proxy:${new_version}-rc" >> "$GITHUB_ENV"
+          echo "::set-output name=versionTag::${new_version}-rc"
+          echo "${new_version}-rc"
         
       - name: Docker login
         run: |
@@ -209,8 +209,8 @@ jobs:
       - name: Docker Push
         run: |
           docker pull ${{ env.CI_IMAGE }}
-          docker tag ${{ env.CI_IMAGE }} ${{ env.VERSION_IMAGE }}
-          docker push ${{ env.VERSION_IMAGE }}
+          docker tag ${{ env.CI_IMAGE }} ${{ env.RC_IMAGE }}
+          docker push ${{ env.RC_IMAGE }}
 
   Replace_OAuth2_Proxy_Tag_in_Terraform_API_Gateway:
     needs: [Promote_Version]
