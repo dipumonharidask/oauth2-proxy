@@ -1,20 +1,22 @@
-name: CI-GATED
+name: Update OAuth2 Proxy version at API-GW
 
 on:
-  pull_request:
-    branches: [ edi-foundation-integration ]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      OAUTH2_PROXY_IMAGE:
+        type: string
+        required: true
+    secrets:
+      VAULT_HOST:
+        required: true
+      VAULT_ROLE_ID:
+        required: true
+      VAULT_SECRET_ID:
+        required: true
 
 jobs:
-  Wokflow-Queue:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ahmadnassri/action-workflow-queue@v1
-      
-  Gated:
-    needs: [Wokflow-Queue]
-    runs-on: ubuntu-20.04
+  Deploy:
+    runs-on: ubuntu-20.04 
     steps:
       - name: Import Secrets
         id: secrets
@@ -31,7 +33,8 @@ jobs:
       - uses: convictional/trigger-workflow-and-wait@v1.6.1
         with:
           owner: philips-internal
-          repo: hds-auth-gateway
+          repo: terraform-api-gateway
           github_token: ${{ env.GITHUB_TOKEN }}
-          workflow_file_name: ci.yaml
-          ref: master
+          client_payload: '{"oauth2proxytag": "${{ inputs.OAUTH2_PROXY_IMAGE }}"}'
+          workflow_file_name: set-images-version.yml
+          ref: main
