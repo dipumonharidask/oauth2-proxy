@@ -36,5 +36,5 @@ jobs:
           repo: terraform-api-gateway
           github_token: ${{ env.GITHUB_TOKEN }}
           client_payload: '{"oauth2proxytag": "${{ inputs.OAUTH2_PROXY_IMAGE }}"}'
-          workflow_file_name: set-images-version-cd.yml
+          workflow_file_name: set-images-version.yml
           ref: main
