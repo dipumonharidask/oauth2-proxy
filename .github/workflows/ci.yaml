@@ -1,4 +1,4 @@
-name: CI-INTEGRATED
+name: CI
 
 on:
   push:
@@ -171,7 +171,7 @@ jobs:
 
   Promote_Version:
     needs: [Deploy_Test_HDS_AUTH_GATEWAY]
-    if: github.ref == 'refs/heads/release-version'
+    if: github.ref == 'refs/heads/edi-foundation-integration'
     runs-on: ubuntu-20.04
     outputs:
       versionTag: ${{ steps.setVariables.outputs.versionTag }}
@@ -214,7 +214,7 @@ jobs:
 
   Replace_OAuth2_Proxy_Tag_in_Terraform_API_Gateway:
     needs: [Promote_Version]
-    if: github.ref == 'refs/heads/release-version'
+    if: github.ref == 'refs/heads/edi-foundation-integration'
     uses: ./.github/workflows/update-oauth2-proxy-version-at-api-gw.yaml
     with:
       OAUTH2_PROXY_IMAGE: ${{ needs.Promote_Version.outputs.versionTag }}
