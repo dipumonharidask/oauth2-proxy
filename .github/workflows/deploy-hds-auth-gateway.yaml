@@ -16,7 +16,7 @@ on:
 
 jobs:
   Deploy_HDS_Auth_Gateway_With_Token_Authenticator_Image:
-    runs-on: [self-hosted, research] 
+    runs-on: ubuntu-20.04 
     steps:
       - name: Import Secrets
         id: secrets
