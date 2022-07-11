@@ -139,7 +139,7 @@ jobs:
         alpha_tag="${new_version}-alpha"
         echo "New version is: $new_version"
         echo "VERSION=$new_version" >> "$GITHUB_ENV"
-        echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${new_version}-${alpha_tag}" >> "$GITHUB_ENV"
+        echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${alpha_tag}" >> "$GITHUB_ENV"
         echo "::set-output name=ciImage::${{ env.CI_IMAGE }}"
         echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
         echo "::set-output name=alphaTag::${alpha_tag}"
