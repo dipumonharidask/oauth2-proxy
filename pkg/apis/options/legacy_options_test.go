@@ -471,6 +471,19 @@ var _ = Describe("Legacy Options", func() {
 			},
 		}
 
+		idTokenHeader := Header{
+			Name:                 "x-auth-request-id-token",
+			PreserveRequestValue: false,
+			Values: []HeaderValue{
+				{
+					ClaimSource: &ClaimSource{
+						Claim:  "id_token",
+						Prefix: "Bearer ",
+					},
+				},
+			},
+		}
+
 		DescribeTable("should convert to injectRequestHeaders",
 			func(in legacyHeadersTableInput) {
 				requestHeaders, responseHeaders := in.legacyHeaders.convert()
@@ -771,9 +784,11 @@ var _ = Describe("Legacy Options", func() {
 				},
 				expectedRequestHeaders: []Header{
 					authorizationHeader,
+					idTokenHeader,
 				},
 				expectedResponseHeaders: []Header{
 					authorizationHeader,
+					idTokenHeader,
 				},
 			}),
 			Entry("with authorization headers and SkipAuthStripHeaders disabled", legacyHeadersTableInput{
@@ -793,9 +808,11 @@ var _ = Describe("Legacy Options", func() {
 				},
 				expectedRequestHeaders: []Header{
 					withPreserveRequestValue(authorizationHeader, true),
+					withPreserveRequestValue(idTokenHeader, true),
 				},
 				expectedResponseHeaders: []Header{
 					authorizationHeader,
+					idTokenHeader,
 				},
 			}),
 		)
