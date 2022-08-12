@@ -477,8 +477,7 @@ var _ = Describe("Legacy Options", func() {
 			Values: []HeaderValue{
 				{
 					ClaimSource: &ClaimSource{
-						Claim:  "id_token",
-						Prefix: "Bearer ",
+						Claim: "id_token",
 					},
 				},
 			},
