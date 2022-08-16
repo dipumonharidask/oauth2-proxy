@@ -234,7 +234,7 @@ func (l *LegacyHeaders) getRequestHeaders() []Header {
 	}
 
 	if l.PassAuthorization {
-		requestHeaders = append(requestHeaders, getAuthorizationHeader())
+		requestHeaders = append(requestHeaders, getAuthorizationHeader()...)
 	}
 
 	for i := range requestHeaders {
@@ -259,7 +259,7 @@ func (l *LegacyHeaders) getResponseHeaders() []Header {
 	}
 
 	if l.SetAuthorization {
-		responseHeaders = append(responseHeaders, getAuthorizationHeader())
+		responseHeaders = append(responseHeaders, getAuthorizationHeader()...)
 	}
 
 	if l.SetIntrospectionValue {
@@ -356,18 +356,31 @@ func getPassAccessTokenHeader() Header {
 	}
 }
 
-func getAuthorizationHeader() Header {
-	return Header{
-		Name: "Authorization",
-		Values: []HeaderValue{
-			{
-				ClaimSource: &ClaimSource{
-					Claim:  "id_token",
-					Prefix: "Bearer ",
+func getAuthorizationHeader() []Header {
+	headers := []Header{
+		{
+			Name: "Authorization",
+			Values: []HeaderValue{
+				{
+					ClaimSource: &ClaimSource{
+						Claim:  "id_token",
+						Prefix: "Bearer ",
+					},
+				},
+			},
+		},
+		{
+			Name: "x-auth-request-id-token",
+			Values: []HeaderValue{
+				{
+					ClaimSource: &ClaimSource{
+						Claim: "id_token",
+					},
 				},
 			},
 		},
 	}
+	return headers
 }
 
 func getPreferredUsernameHeader() Header {
