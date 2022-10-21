@@ -2,6 +2,10 @@ name: API-GW-INTEGRATED-TEST
 
 on:
   workflow_call:
+    inputs:
+      OAUTH2_PROXY_IMAGE:
+        type: string
+        required: true
     secrets:
       VAULT_HOST:
         required: true
@@ -31,5 +35,6 @@ jobs:
           owner: philips-internal
           repo: hds-auth-gateway
           github_token: ${{ env.GITHUB_TOKEN }}
+          client_payload: '{"oauth2proxytag": "${{ inputs.OAUTH2_PROXY_IMAGE }}"}'
           workflow_file_name: cd.yaml
           ref: master
