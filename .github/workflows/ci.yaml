@@ -114,20 +114,20 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Import Secrets
-      id: secrets
-      uses: hashicorp/vault-action@v2.3.1
-      with:
-        url: ${{ secrets.VAULT_HOST }}
-        method: approle
-        roleId: ${{ secrets.VAULT_ROLE_ID }}
-        secretId: ${{ secrets.VAULT_SECRET_ID }}
-        exportEnv: true
-        secrets: |
-          devops/data/docker-repos/hsdp-edi endPoint | HSDP_DOCKER_REGISTRY ;
-          devops/data/docker-repos/hsdp-edi user | HSDP_DOCKER_USER ;
-          devops/data/docker-repos/hsdp-edi password | HSDP_DOCKER_PASSWORD ;
-          devops/data/github/users/sal-devops token | GITHUB_TOKEN ;
+    # - name: Import Secrets
+    #   id: secrets
+    #   uses: hashicorp/vault-action@v2.3.1
+    #   with:
+    #     url: ${{ secrets.VAULT_HOST }}
+    #     method: approle
+    #     roleId: ${{ secrets.VAULT_ROLE_ID }}
+    #     secretId: ${{ secrets.VAULT_SECRET_ID }}
+    #     exportEnv: true
+    #     secrets: |
+    #       devops/data/docker-repos/hsdp-edi endPoint | HSDP_DOCKER_REGISTRY ;
+    #       devops/data/docker-repos/hsdp-edi user | HSDP_DOCKER_USER ;
+    #       devops/data/docker-repos/hsdp-edi password | HSDP_DOCKER_PASSWORD ;
+    #       devops/data/github/users/sal-devops token | GITHUB_TOKEN ;
 
     - name: Extract branch name
       uses: vazco/github-actions-branch-name@v1
@@ -140,8 +140,8 @@ jobs:
         beta_tag="${new_version}-beta"
         echo "New version is: $new_version"
         echo "VERSION=$new_version" >> "$GITHUB_ENV"
-        echo "CI_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${beta_tag}" >> "$GITHUB_ENV"
-        echo "PR_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${alpha_tag}" >> "$GITHUB_ENV"
+        echo "CI_IMAGE=${{ secrets.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${beta_tag}" >> "$GITHUB_ENV"
+        echo "PR_IMAGE=${{ secrets.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:${alpha_tag}" >> "$GITHUB_ENV"
         echo "CI_LATEST_IMAGE=${{ env.HSDP_DOCKER_REGISTRY }}/edi-foundation-oauth2-proxy:latest" >> "$GITHUB_ENV"
         echo "alphaTag=${alpha_tag}" >> $GITHUB_OUTPUT
         echo "betaTag=${beta_tag}" >> $GITHUB_OUTPUT
@@ -152,7 +152,7 @@ jobs:
         
     - name: Docker login
       run: |
-          docker login --username '${{ secrets.DOCKER_USER }}' --password '${{ secrets.DOCKER_PSWD }}'  '${{ secrets.DOCKER_REPO }}' 
+          docker login --username '${{ secrets.HSDP_DOCKER_USER }}' --password '${{ secrets.HSDP_DOCKER_PASSWORD }}'  '${{ secrets.DOCKER_REPO }}' 
         
     - name: Docker tag 
       run: |
