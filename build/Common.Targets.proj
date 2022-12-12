@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+
+    <ToolsDir Condition=" '$(ToolsDir)' == '' ">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\'))</ToolsDir>
+  </PropertyGroup>
+  <Import Project="$(ToolsDir)Common.Properties.proj"  />
+
+  <Target Name="IncremnetAssembly">
+
+    <IncremnetVersion VersionString="$(Version)" VersionIncrement="1" >
+
+      <Output PropertyName="ProductVersion" TaskParameter="IncrementedVersion" />
+
+    </IncremnetVersion>
+    <Message Importance="HIGH" Text="xx $(ProductVersion) $(IncrementedVersion) calling XmlPoke"/>
+
+    <XmlPoke XmlInputPath="$(ToolsDir)..\Directory.Build.props" Query="//Version"  Value="$(ProductVersion)"  />
+
+  </Target>
+
+  <Target Name="StageAssemblyInfo">
+
+    <Message Importance="high" Text="Staging Common assemblyInfo from: $(ToolsDir)..\Directory.Build.Props to: $(SubSystemRootDir)Directory.Build.Props*"/>
+    <!--<Copy SourceFiles="$(ToolsDir)..\Directory.Build.Props" DestinationFiles="$(SubSystemRootDir)Directory.Build.Props" OverwriteReadOnlyFiles="true" />-->
+  </Target>
+
+  <Target Name="UpdateBuildNumber">
+    <Message Importance="high" Text="Executing target: UpdateBuildNumber"/>
+    <IncremnetVersion VersionString="$(Version)" VersionIncrement="0" >
+      <Output PropertyName="ProductVersion" TaskParameter="IncrementedVersion" />
+    </IncremnetVersion>
+
+    <PropertyGroup>
+      <Organization  Condition=" '$(Organization)' == '' ">++++ ServiceId Not Assigned ++++</Organization>
+      <ProjID Condition=" '$(ProjID)' == '' ">++++ ServiceId Not Assigned ++++</ProjID>
+      <ServiceId Condition=" '$(ServiceId)' == '' " >++++ ServiceId Not Assigned ++++</ServiceId>
+    </PropertyGroup>
+    <Message Importance="high" Text="Using BundleVersion=$(ProductVersion)"/>
+    <Message Importance="high" Text="##vso[build.updatebuildnumber]$(Organization)-$(ProjID)-$(ServiceId)-$(ProductVersion)"/>
+  </Target>
+
+</Project>

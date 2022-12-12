@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project  Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ToolsDir Condition=" '$(ToolsDir)' == '' ">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\'))</ToolsDir>
+    <FLS_DIR Condition="'$(FLS_DIR)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\'))</FLS_DIR>
+    <CommonTasksFile >$(ToolsDir)Common.Targets.proj</CommonTasksFile>
+
+  </PropertyGroup>
+  <Import Project="$(ToolsDir)api_automation_build.proj"  />
+  <Import Project="$(ToolsDir)Common.Targets.proj"  />
+
+
+
+  <UsingTask TaskName="IncremnetVersion" TaskFactory="CodeTaskFactory" AssemblyFile="c:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll">
+    <ParameterGroup>
+      <VersionString ParameterType="System.String" Required="True" />
+      <VersionIncrement ParameterType="System.String" Required="True" />
+      <IncrementedVersion ParameterType="System.String"  Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.IO.Compression" />
+      <Reference Include="System.IO.Compression.FileSystem" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+        Version incrementedVer;
+           try
+            {
+                Log.LogMessage("incrementing Version task with params : VersionString = {0} VersionIncrement = {1}", VersionString, VersionIncrement);
+                Version ver = new Version();
+                int inc;
+                if (!Version.TryParse(VersionString, out ver))
+                {
+                    throw new Exception(string.Format("Illegal version format loaded: {0}", VersionString));
+                }
+                if (!Int32.TryParse(VersionIncrement, out inc))
+                {
+                    throw new Exception(string.Format("Illegal version format loaded: {0}", VersionString));
+                }
+               
+                incrementedVer = new Version(ver.Major, ver.Minor, ver.Build + inc);
+                IncrementedVersion = incrementedVer.ToString();
+                Log.LogMessage("incremented Version : {0}", incrementedVer.ToString());
+                return true;
+                
+            }
+            catch (Exception ex)
+            {
+            Log.LogError("ex");
+                return false;
+            }
+
+            
+       
+			]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+</Project>
