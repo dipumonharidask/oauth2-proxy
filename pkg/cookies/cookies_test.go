@@ -13,6 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const cookiePath = "/cookie-tests"
+
 var _ = Describe("Cookie Tests", func() {
 	Context("GetCookieDomain", func() {
 		type getCookieDomainTableInput struct {
