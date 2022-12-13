@@ -445,16 +445,21 @@ func (p *OAuthProxy) makeCookie(req *http.Request, name string, value string, ex
 		}
 	}
 
-	return &http.Cookie{
+	c := &http.Cookie{
 		Name:     name,
 		Value:    value,
 		Path:     p.CookiePath,
 		Domain:   cookieDomain,
 		HttpOnly: p.CookieHTTPOnly,
 		Secure:   p.CookieSecure,
-		Expires:  now.Add(expiration),
 		SameSite: cookies.ParseSameSite(p.CookieSameSite),
 	}
+
+	if expiration != time.Duration(0) {
+		c.Expires = now.Add(expiration)
+	}
+
+	return c
 }
 
 // ClearCSRFCookie creates a cookie to unset the CSRF cookie stored in the user's
